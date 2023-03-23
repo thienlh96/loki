@@ -257,6 +257,10 @@ func (t TableMarkerFunc) MarkForDelete(ctx context.Context, tableName, userID st
 	return t(ctx, tableName, userID, indexFile, logger)
 }
 
+func (t TableMarkerFunc) MarkersCnt(ctx context.Context, bla string, blo string, indexProcessor retention.IndexProcessor, logger log.Logger) (int64, error) {
+	return 0, nil
+}
+
 type IntervalMayHaveExpiredChunksFunc func(interval model.Interval, userID string) bool
 
 func (f IntervalMayHaveExpiredChunksFunc) IntervalMayHaveExpiredChunks(interval model.Interval, userID string) bool {
