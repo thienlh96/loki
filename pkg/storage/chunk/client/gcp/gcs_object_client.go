@@ -11,6 +11,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/grafana/dskit/flagext"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/api/iterator"
@@ -115,6 +116,10 @@ func (s *GCSObjectClient) Stop() {
 
 // GetObject returns a reader and the size for the specified object key from the configured GCS bucket.
 func (s *GCSObjectClient) GetObject(ctx context.Context, objectKey string) (io.ReadCloser, int64, error) {
+	if span := opentracing.SpanFromContext(ctx); span != nil {
+		span.LogKV("event", "started GCS get object")
+		defer span.LogKV("event", "finished GCS get object")
+	}
 	var cancel context.CancelFunc = func() {}
 	if s.cfg.RequestTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, s.cfg.RequestTimeout)
