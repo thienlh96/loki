@@ -201,5 +201,6 @@ func handler(ctx context.Context, ev map[string]interface{}) error {
 
 func main() {
 	setupArguments()
+	handler()
 	lambda.Start(handler)
 }
