@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -29,9 +31,9 @@ var (
 	// source: https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-s3.html#flow-logs-s3-path
 	// format: bucket-and-optional-prefix/AWSLogs/account_id/vpcflowlogs/region/year/month/day/aws_account_id_vpcflowlogs_region_flow_log_id_YYYYMMDDTHHmmZ_hash.log.gz
 	// example: 123456789012_vpcflowlogs_us-east-1_fl-1234abcd_20180620T1620Z_fe123456.log.gz
-	filenameRegex = regexp.MustCompile(`AWSLogs\/(?P<account_id>\d+)\/(?P<type>\w+)\/(?P<region>[\w-]+)\/(?P<year>\d+)\/(?P<month>\d+)\/(?P<day>\d+)\/\d+\_(?:elasticloadbalancing|vpcflowlogs)\_\w+-\w+-\d_(?:(?:app|nlb|net)\.*?)?(?P<src>[a-zA-Z0-9\-]+)`)
-	filenameRegexWAF = regexp.MustCompile(`AWSLogs\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<key>.*)`)
-	filenameRegexRDS = regexp.MustCompile(`AWSLogs\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<key>.*)`)
+	filenameRegex    = regexp.MustCompile(`AWSLogs\/(?P<account_id>\d+)\/(?P<type>\w+)\/(?P<region>[\w-]+)\/(?P<year>\d+)\/(?P<month>\d+)\/(?P<day>\d+)\/\d+\_(?:elasticloadbalancing|vpcflowlogs)\_\w+-\w+-\d_(?:(?:app|nlb|net)\.*?)?(?P<src>[a-zA-Z0-9\-]+)`)
+	filenameRegexWAF = regexp.MustCompile(`AWSLogs\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<src>.*)`)
+	filenameRegexRDS = regexp.MustCompile(`(?P<rds_instance>.*)\/(?P<log_type>.*)\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<src>.*)`)
 
 	// regex that extracts the timestamp (RFC3339) from message log
 	timestampRegex = regexp.MustCompile(`\w+ (?P<timestamp>\d+-\d+-\d+T\d+:\d+:\d+\.\d+Z)`)
@@ -40,6 +42,8 @@ var (
 const (
 	FLOW_LOG_TYPE string = "vpcflowlogs"
 	LB_LOG_TYPE   string = "elasticloadbalancing"
+	WAF_LOG_TYPE  string = "waf"
+	RDS_LOG_TYPE  string = "rds"
 )
 
 func getS3Client(ctx context.Context, region string) (*s3.Client, error) {
@@ -73,6 +77,10 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 		logType = "s3_vpc_flow"
 	} else if labels["type"] == LB_LOG_TYPE {
 		logType = "s3_lb"
+	} else if labels["type"] == RDS_LOG_TYPE {
+		logType = "s3_rds_" + labels["log_type"]
+	} else if labels["type"] == WAF_LOG_TYPE {
+		logType = "s3_waf"
 	}
 
 	ls := model.LabelSet{
@@ -94,7 +102,9 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 		if printLogLine {
 			fmt.Println(log_line)
 		}
-
+		var jsonDecode map[string]any
+		err := json.Unmarshal([]byte(log_line), &jsonDecode)
+		
 		match := timestampRegex.FindStringSubmatch(log_line)
 		if len(match) > 0 {
 			timestamp, err = time.Parse(time.RFC3339, match[1])
@@ -102,8 +112,12 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 				return err
 			}
 		}
+		ts, err := time.Parse("2006-01-02T15:04:05.000000Z", log_line)
+		if err == nil {
+			timestamp = ts
+		}
 
-		if err := b.add(ctx, ``1``{ls, logproto.Entry{
+		if err := b.add(ctx, entry{ls, logproto.Entry{
 			Line:      log_line,
 			Timestamp: timestamp,
 		}}); err != nil {
@@ -124,10 +138,30 @@ func getLabels(record events.S3EventRecord) (map[string]string, error) {
 	labels["bucket_region"] = record.AWSRegion
 
 	match := filenameRegex.FindStringSubmatch(labels["key"])
-	for i, name := range filenameRegex.SubexpNames() {
-		if i != 0 && name != "" {
-			labels[name] = match[i]
+	if len(match) > 0 {
+		for i, name := range filenameRegex.SubexpNames() {
+			if i != 0 && name != "" {
+				labels[name] = match[i]
+			}
 		}
+	}
+	match = filenameRegexRDS.FindStringSubmatch(labels["key"])
+	if len(match) > 0 {
+		for i, name := range filenameRegexRDS.SubexpNames() {
+			if i != 0 && name != "" {
+				labels[name] = match[i]
+			}
+		}
+		labels["type"] = RDS_LOG_TYPE
+	}
+	match = filenameRegexWAF.FindStringSubmatch(labels["key"])
+	if len(match) > 0 {
+		for i, name := range filenameRegexWAF.SubexpNames() {
+			if i != 0 && name != "" {
+				labels[name] = match[i]
+			}
+		}
+		labels["type"] = WAF_LOG_TYPE
 	}
 
 	return labels, nil

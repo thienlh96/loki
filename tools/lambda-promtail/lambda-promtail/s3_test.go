@@ -21,7 +21,72 @@ func Test_getLabels(t *testing.T) {
 		args    args
 		want    map[string]string
 		wantErr bool
-	}{
+	}{{
+		name: "s3_rds_audit",
+		args: args{
+			record: events.S3EventRecord{
+				AWSRegion: "us-east-1",
+				S3: events.S3Entity{
+					Bucket: events.S3Bucket{
+						Name: "rds_logs_test",
+						OwnerIdentity: events.S3UserIdentity{
+							PrincipalID: "test",
+						},
+					},
+					Object: events.S3Object{
+						Key: "mothership-instance-1/general_log/year=2023/month=04/day=07/hour=08/1680857100495.log",
+					},
+				},
+			},
+		},
+		want: map[string]string{
+			"bucket":        "rds_logs_test",
+			"bucket_owner":  "test",
+			"bucket_region": "us-east-1",
+			"day":           "07",
+			"key":           "mothership-instance-1/general_log/year=2023/month=04/day=07/hour=08/1680857100495.log",
+			"month":         "04",
+			"log_type":           "general_log",
+			"src":           "1680857100495.log",
+			"type":          "rds",
+			"year":          "2023",
+			"hour":          "08",
+			"rds_instance":          "mothership-instance-1",
+		},
+		wantErr: false,
+	},
+	{
+		name: "s3_waf",
+		args: args{
+			record: events.S3EventRecord{
+				AWSRegion: "us-east-1",
+				S3: events.S3Entity{
+					Bucket: events.S3Bucket{
+						Name: "rds_logs_test",
+						OwnerIdentity: events.S3UserIdentity{
+							PrincipalID: "test",
+						},
+					},
+					Object: events.S3Object{
+						Key: "AWSLogs/year=2023/month=03/day=10/hour=03/aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-03-20-56-fafab3d8-0af4-4c40-97f2-6cb2914b8a8f",
+					},
+				},
+			},
+		},
+		want: map[string]string{
+			"bucket":        "rds_logs_test",
+			"bucket_owner":  "test",
+			"bucket_region": "us-east-1",
+			"day":           "10",
+			"key":           "AWSLogs/year=2023/month=03/day=10/hour=03/aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-03-20-56-fafab3d8-0af4-4c40-97f2-6cb2914b8a8f",
+			"month":         "03",
+			"src":           "aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-03-20-56-fafab3d8-0af4-4c40-97f2-6cb2914b8a8f",
+			"type":          "waf",
+			"year":          "2023",
+			"hour":          "03",
+		},
+		wantErr: false,
+	},
 		{
 			name: "s3_lb",
 			args: args{
@@ -117,6 +182,23 @@ func Test_parseS3Log(t *testing.T) {
 		wantErr        bool
 		expectedStream string
 	}{
+		{
+			name: "waf",
+			args: args{
+				batchSize: 10240, // Set large enough we don't try and send to promtail
+				filename:  "../testdata/waf-log-test.log.gz",
+				b: &batch{
+					streams: map[string]*logproto.Stream{},
+				},
+				labels: map[string]string{
+					"type":       WAF_LOG_TYPE,
+					"src":        "source",
+					"account_id": "123456789",
+				},
+			},
+			expectedStream: `{__aws_log_type="s3_vpc_flow", __aws_s3_vpc_flow="source", __aws_s3_vpc_flow_owner="123456789"}`,
+			wantErr:        false,
+		},
 		{
 			name: "vpcflowlogs",
 			args: args{
