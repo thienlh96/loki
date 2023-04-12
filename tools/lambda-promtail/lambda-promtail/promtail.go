@@ -78,6 +78,7 @@ func (b *batch) add(ctx context.Context, e entry) error {
 	b.size += len(e.entry.Line)
 
 	if b.size > batchSize {
+
 		return b.flushBatch(ctx)
 	}
 

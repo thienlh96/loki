@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -16,6 +17,7 @@ import (
 	"github.com/go-kit/log/level"
 	"github.com/grafana/loki/pkg/logproto"
 	"github.com/prometheus/common/model"
+	"github.com/tidwall/gjson"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -63,12 +65,16 @@ func getS3Client(ctx context.Context, region string) (*s3.Client, error) {
 }
 
 func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.ReadCloser) error {
-	gzreader, err := gzip.NewReader(obj)
-	if err != nil {
-		return err
+	var scanner *bufio.Scanner
+	if !strings.Contains(labels["key"], "gz") {
+		scanner = bufio.NewScanner(obj)
+	} else {
+		gzreader, errGzip := gzip.NewReader(obj)
+		scanner = bufio.NewScanner(gzreader)
+		if errGzip != nil {
+			return errGzip
+		}
 	}
-
-	scanner := bufio.NewScanner(gzreader)
 
 	skipHeader := false
 	logType := labels["type"]
@@ -102,21 +108,42 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 		if printLogLine {
 			fmt.Println(log_line)
 		}
-		var jsonDecode map[string]any
-		err := json.Unmarshal([]byte(log_line), &jsonDecode)
-		
+
 		match := timestampRegex.FindStringSubmatch(log_line)
 		if len(match) > 0 {
-			timestamp, err = time.Parse(time.RFC3339, match[1])
+			timestampLog, err := time.Parse(time.RFC3339, match[1])
+			timestamp=timestampLog
 			if err != nil {
 				return err
 			}
 		}
-		ts, err := time.Parse("2006-01-02T15:04:05.000000Z", log_line)
-		if err == nil {
-			timestamp = ts
+		if labels["type"] == RDS_LOG_TYPE {
+			if strings.Contains(labels["log_type"], "audit") {
+				match = strings.Split(log_line, ",")
+				tsStr := match[0]
+				tsStr = tsStr[:len(tsStr)-6]
+				intTime, errInt := strconv.ParseInt(tsStr, 10, 64)
+				if errInt == nil {
+					timestamp = time.Unix(intTime, 0)
+				}
+			}
+			match = strings.Split(log_line, " ")
+			tsStr := match[0]
+			ts, err := time.Parse("2006-01-02T15:04:05.000000Z", tsStr)
+			if err == nil {
+				timestamp = ts
+			}
 		}
+		if labels["type"] == WAF_LOG_TYPE {
+			tsJson := gjson.Get(log_line, "timestamp")
+			tsStr := tsJson.String()
+			tsStr = tsStr[:len(tsStr)-3]
+			intTime, errInt := strconv.ParseInt(tsStr, 10, 64)
+			if errInt == nil {
+				timestamp = time.Unix(intTime, 0)
+			}
 
+		}
 		if err := b.add(ctx, entry{ls, logproto.Entry{
 			Line:      log_line,
 			Timestamp: timestamp,
@@ -131,7 +158,10 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 func getLabels(record events.S3EventRecord) (map[string]string, error) {
 
 	labels := make(map[string]string)
-
+	decodeKey, err := url.PathUnescape(labels["key"])
+	if err == nil {
+		labels["key"] = decodeKey
+	}
 	labels["key"] = record.S3.Object.Key
 	labels["bucket"] = record.S3.Bucket.Name
 	labels["bucket_owner"] = record.S3.Bucket.OwnerIdentity.PrincipalID
@@ -153,6 +183,8 @@ func getLabels(record events.S3EventRecord) (map[string]string, error) {
 			}
 		}
 		labels["type"] = RDS_LOG_TYPE
+		labels["src"]=record.S3.Bucket.Name
+		labels["account_id"]=record.S3.Bucket.OwnerIdentity.PrincipalID
 	}
 	match = filenameRegexWAF.FindStringSubmatch(labels["key"])
 	if len(match) > 0 {
@@ -162,6 +194,8 @@ func getLabels(record events.S3EventRecord) (map[string]string, error) {
 			}
 		}
 		labels["type"] = WAF_LOG_TYPE
+		labels["src"]=record.S3.Bucket.Name
+		labels["account_id"]=record.S3.Bucket.OwnerIdentity.PrincipalID
 	}
 
 	return labels, nil
@@ -174,6 +208,10 @@ func processS3Event(ctx context.Context, ev *events.S3Event, pc Client, log *log
 	}
 	for _, record := range ev.Records {
 		labels, err := getLabels(record)
+		decodeKey, err := url.PathUnescape(labels["key"])
+		if err == nil {
+			labels["key"] = decodeKey
+		}
 		if err != nil {
 			return err
 		}

@@ -47,7 +47,7 @@ func Test_getLabels(t *testing.T) {
 			"key":           "mothership-instance-1/general_log/year=2023/month=04/day=07/hour=08/1680857100495.log",
 			"month":         "04",
 			"log_type":           "general_log",
-			"src":           "1680857100495.log",
+			"src":           "rds_logs_test",
 			"type":          "rds",
 			"year":          "2023",
 			"hour":          "08",
@@ -185,8 +185,8 @@ func Test_parseS3Log(t *testing.T) {
 		{
 			name: "waf",
 			args: args{
-				batchSize: 10240, // Set large enough we don't try and send to promtail
-				filename:  "../testdata/waf-log-test.log.gz",
+				batchSize: 1024000000, // Set large enough we don't try and send to promtail
+				filename:  "../testdata/waf-log-test.log",
 				b: &batch{
 					streams: map[string]*logproto.Stream{},
 				},
@@ -194,9 +194,70 @@ func Test_parseS3Log(t *testing.T) {
 					"type":       WAF_LOG_TYPE,
 					"src":        "source",
 					"account_id": "123456789",
+					"key": "waf-log-test.log",
 				},
 			},
-			expectedStream: `{__aws_log_type="s3_vpc_flow", __aws_s3_vpc_flow="source", __aws_s3_vpc_flow_owner="123456789"}`,
+			expectedStream: "{__aws_log_type=\"s3_waf\", __aws_s3_waf=\"source\", __aws_s3_waf_owner=\"123456789\"}"			,
+			wantErr:        false,
+		},
+		{
+			name: "rds_audit",
+			args: args{
+				batchSize: 1024000000, // Set large enough we don't try and send to promtail
+				filename:  "../testdata/audit.gz",
+				b: &batch{
+					streams: map[string]*logproto.Stream{},
+				},
+				labels: map[string]string{
+					"type":       RDS_LOG_TYPE,
+					"src":        "source",
+					"account_id": "123456789",
+					"log_type": "audit",
+					"key": "audit.gz",
+
+				},
+			},
+			expectedStream: `{__aws_log_type="s3_rds_audit", __aws_rds_audit="source", __aws_s3_rds_audit_owner="123456789"}`,
+			wantErr:        false,
+		},
+		{
+			name: "rds_audit",
+			args: args{
+				batchSize: 1024000000, // Set large enough we don't try and send to promtail
+				filename:  "../testdata/rds_error.gz",
+				b: &batch{
+					streams: map[string]*logproto.Stream{},
+				},
+				labels: map[string]string{
+					"type":       RDS_LOG_TYPE,
+					"src":        "source",
+					"account_id": "123456789",
+					"log_type": "error",
+					"key": "rds_error.gz",
+
+				},
+			},
+			expectedStream: `{__aws_log_type="s3_rds_error", __aws_rds_error="source", __aws_s3_rds_error_owner="123456789"}`,
+			wantErr:        false,
+		},
+		{
+			name: "rds_general",
+			args: args{
+				batchSize: 1024000000, // Set large enough we don't try and send to promtail
+				filename:  "../testdata/rds_general.gz",
+				b: &batch{
+					streams: map[string]*logproto.Stream{},
+				},
+				labels: map[string]string{
+					"type":       RDS_LOG_TYPE,
+					"src":        "source",
+					"account_id": "123456789",
+					"log_type": "general",
+					"key": "rds_general.gz",
+
+				},
+			},
+			expectedStream: `{__aws_log_type="s3_rds_general", __aws_rds_general="source", __aws_s3_rds_general_owner="123456789"}`,
 			wantErr:        false,
 		},
 		{
@@ -211,6 +272,7 @@ func Test_parseS3Log(t *testing.T) {
 					"type":       FLOW_LOG_TYPE,
 					"src":        "source",
 					"account_id": "123456789",
+					"key": "vpcflowlog.log.gz",
 				},
 			},
 			expectedStream: `{__aws_log_type="s3_vpc_flow", __aws_s3_vpc_flow="source", __aws_s3_vpc_flow_owner="123456789"}`,
@@ -228,6 +290,8 @@ func Test_parseS3Log(t *testing.T) {
 					"type":       LB_LOG_TYPE,
 					"src":        "source",
 					"account_id": "123456789",
+					"key": "albaccesslog.log.gz",
+
 				},
 			},
 			expectedStream: `{__aws_log_type="s3_lb", __aws_s3_lb="source", __aws_s3_lb_owner="123456789"}`,
