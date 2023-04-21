@@ -21,6 +21,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+
+	// "github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -55,6 +57,10 @@ func getS3Client(ctx context.Context, region string) (*s3.Client, error) {
 		s3Client = c
 	} else {
 		cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+		// cfg, err := config.LoadDefaultConfig(context.TODO(),
+		// config.WithRegion(region),
+		// 	config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("ASIAYZ3IT4J6EWAK346R", "B5sHPZG2boj2rY6wmO5q2cEaXpj5meDgWBOxcV9O", "IQoJb3JpZ2luX2VjEKv//////////wEaCXVzLWVhc3QtMSJIMEYCIQDSJsWqpnGlQ+TUmA+Y6u3SZgPSy1zEbKY6tDGdQ3+9cQIhAP06hQGudRG41kpuhLN//lKg1jxkXCF1AbFQ5VNNNv5nKpcECKT//////////wEQABoMNjA1MjcyOTI0Nzk2Igz9sgQA+5KtkdycesIq6wPOFcFiYJZK7skJt/ZHd5jMWeufCjpEXOZuk/xUGy2nUBje8L5/IVdi1Qdr/6CUFFOSGe4r0DYr+7m972RdDz2wRIrbThhnd6A0zixdBkybEh4Nww4nHztoJZlM/0eAtvR4ck2wu4x/e+1II037yQyczCqt7nTxQGltaV8GEwk1/nbxRzpph9bjXP65Ii8kCCCSJQVysPjz7NDEKIN+EX0KfUNH82LFXNtfzsD/7Ie92qJJrm1E4Ku5HSNOv+FSdI4rW1UAgngoKHP2ZkQAY5Ntgo+QfHbrlvFpMWlkknlbhuOo/1rI8UTN5DXgkjzv0+dh8HTtp7V/voiFAJr0vPKFo5WuFU5FPdyL+Kk7bQEB7vj934tytpc9z12F3U0v6GMNkBshbRZxFL56aKWuI5et0tLW82SqNY/zsrAbcD1Y0PYJIFEwli8T6yJ4REyyLY7+dahnbAhF8dWtbkoL20WULK8QJ6Uuzb2JpISoERHKTZbzAS7UsCNjO9S48kjdIqFglFENG4VMqsaRs034egKMzNG5eqw8TvKTThjwG9r4z1c5lGrOaWmnOU8VY6+QBgXP8ICM/A3Xs3GpernP7WROENsDfIfeViO+zSTHvZQma01OVLYG/3SCKgzkNjCWWJherbwKnFgoB6KfhDDx1YmiBjqlAe/WAf1fzv5kZR0ne0dY/y0slvKPHRHbPSRQnJ0e3qFKI4M89gS3/G0oYPqYA0j6MYTGwQsfDQqubBADhyvP4ZFSCDJLc9xkPIc4ZUEWLqnAdQGabZY097GmW6MBh7LrljUcC3HiwOEkHaq387fH/xyKD8Gyc82XzvoDolg1vjbaslVnbFDWWDRPMP2tceHVDyYC7MzFW0OI+YRh3SkzZ9AIBVwR8A==")),
+		// )
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +118,7 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 		match := timestampRegex.FindStringSubmatch(log_line)
 		if len(match) > 0 {
 			timestampLog, err := time.Parse(time.RFC3339, match[1])
-			timestamp=timestampLog
+			timestamp = timestampLog
 			if err != nil {
 				return err
 			}
@@ -158,15 +164,15 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 func getLabels(record events.S3EventRecord) (map[string]string, error) {
 
 	labels := make(map[string]string)
-	decodeKey, err := url.PathUnescape(labels["key"])
-	if err == nil {
-		labels["key"] = decodeKey
-	}
+
 	labels["key"] = record.S3.Object.Key
 	labels["bucket"] = record.S3.Bucket.Name
 	labels["bucket_owner"] = record.S3.Bucket.OwnerIdentity.PrincipalID
 	labels["bucket_region"] = record.AWSRegion
-
+	decodeKey, err := url.PathUnescape(labels["key"])
+	if err == nil {
+		labels["key"] = decodeKey
+	}
 	match := filenameRegex.FindStringSubmatch(labels["key"])
 	if len(match) > 0 {
 		for i, name := range filenameRegex.SubexpNames() {
@@ -183,8 +189,8 @@ func getLabels(record events.S3EventRecord) (map[string]string, error) {
 			}
 		}
 		labels["type"] = RDS_LOG_TYPE
-		labels["src"]=record.S3.Bucket.Name
-		labels["account_id"]=record.S3.Bucket.OwnerIdentity.PrincipalID
+		labels["src"] = record.S3.Bucket.Name
+		labels["account_id"] = record.S3.Bucket.OwnerIdentity.PrincipalID
 	}
 	match = filenameRegexWAF.FindStringSubmatch(labels["key"])
 	if len(match) > 0 {
@@ -194,8 +200,8 @@ func getLabels(record events.S3EventRecord) (map[string]string, error) {
 			}
 		}
 		labels["type"] = WAF_LOG_TYPE
-		labels["src"]=record.S3.Bucket.Name
-		labels["account_id"]=record.S3.Bucket.OwnerIdentity.PrincipalID
+		labels["src"] = record.S3.Bucket.Name
+		labels["account_id"] = record.S3.Bucket.OwnerIdentity.PrincipalID
 	}
 
 	return labels, nil
