@@ -200,61 +200,61 @@ func handler(ctx context.Context, ev map[string]interface{}) error {
 
 func main() {
 	
-	// os.Setenv("EXTRA_LABELS", "env,stag,namespace,aws-service")
-	// os.Setenv("LOG_LEVELLOG_LEVEL", "debug")
-	// os.Setenv("USERNAME", "")
-	// os.Setenv("OMIT_EXTRA_LABELS_PREFIX", "true")
-	// os.Setenv("SKIP_TLS_VERIFY", "true")
-	// os.Setenv("TENANT_ID", "	torus-tenant")
-	// os.Setenv("WRITE_ADDRESS", "http://gateway.loki.torusai.internal:88/loki/api/v1/push")
+	os.Setenv("EXTRA_LABELS", "env,network,namespace,aws-service")
+	os.Setenv("LOG_LEVELLOG_LEVEL", "debug")
+	os.Setenv("USERNAME", "")
+	os.Setenv("OMIT_EXTRA_LABELS_PREFIX", "true")
+	os.Setenv("SKIP_TLS_VERIFY", "true")
+	os.Setenv("TENANT_ID", "	torus-tenant")
+	os.Setenv("WRITE_ADDRESS", "http://gateway.loki.torusai.internal:88/loki/api/v1/push")
 
 	setupArguments()
 
-	// evStr := `{
-	// 	"Records": [
-	// 	  {
-	// 		"eventVersion": "2.1",
-	// 		"eventSource": "aws:s3",
-	// 		"awsRegion": "us-east-1",
-	// 		"eventTime": "2023-03-10T10:09:26.809Z",
-	// 		"eventName": "ObjectCreated:Put",
-	// 		"userIdentity": {
-	// 		  "principalId": "AWS:AROAYZ3IT4J6OSW5LUHQT:AWSFirehoseToS3"
-	// 		},
-	// 		"requestParameters": {
-	// 		  "sourceIPAddress": "44.196.47.96"
-	// 		},
-	// 		"responseElements": {
-	// 		  "x-amz-request-id": "Y4SA1BGWVTADQ8G3",
-	// 		  "x-amz-id-2": "6kbpmJFBlnEUdn3sh5DZRbMayOOj4cBnYtS99I8fJOJ0tSf4LnMxey3qDt/qCdrRcXr35dbqiZbuqBoyUXjoVBPbenIznewp"
-	// 		},
-	// 		"s3": {
-	// 		  "s3SchemaVersion": "1.0",
-	// 		  "configurationId": "a34939c2-38a7-46d7-8476-953a5a11d66c",
-	// 		  "bucket": {
-	// 			"name": "aws-waf-logs-belletorus-wl-stag-log-bucket",
-	// 			"ownerIdentity": {
-	// 			  "principalId": "A240Y4IHQ1Z4LV"
-	// 			},
-	// 			"arn": "arn:aws:s3:::aws-waf-logs-belletorus-wl-stag-log-bucket"
-	// 		  },
-	// 		  "object": {
-	// 			"key": "AWSLogs/year%3D2023/month%3D03/day%3D10/hour%3D10/aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-10-08-26-1cdd9c1c-cc65-464d-bc26-0de894e5367d",
-	// 			"size": 20386,
-	// 			"eTag": "a8c393ea387d14aee162b92b8b4d9b65",
-	// 			"versionId": "s9vCG4iYzaHfd.VfAjIQZOkN.c5HhXE9",
-	// 			"sequencer": "00640B01D6B6B50A79"
-	// 		  }
-	// 		}
-	// 	  }
-	// 	]
-	//   }`
-	// var ev map[string]interface{}
-	// err := json.Unmarshal([]byte(evStr), &ev)
-	// if err != nil {
-	// }
-	// ctx := context.Background()
-	// handler(ctx, ev)
+	evStr := `{
+		"Records": [
+		  {
+			"eventVersion": "2.1",
+			"eventSource": "aws:s3",
+			"awsRegion": "us-east-1",
+			"eventTime": "2023-03-10T10:09:26.809Z",
+			"eventName": "ObjectCreated:Put",
+			"userIdentity": {
+			  "principalId": "AWS:AROAYZ3IT4J6OSW5LUHQT:AWSFirehoseToS3"
+			},
+			"requestParameters": {
+			  "sourceIPAddress": "44.196.47.96"
+			},
+			"responseElements": {
+			  "x-amz-request-id": "Y4SA1BGWVTADQ8G3",
+			  "x-amz-id-2": "6kbpmJFBlnEUdn3sh5DZRbMayOOj4cBnYtS99I8fJOJ0tSf4LnMxey3qDt/qCdrRcXr35dbqiZbuqBoyUXjoVBPbenIznewp"
+			},
+			"s3": {
+			  "s3SchemaVersion": "1.0",
+			  "configurationId": "a34939c2-38a7-46d7-8476-953a5a11d66c",
+			  "bucket": {
+				"name": "torus-security-network-firewall-solution-bucket",
+				"ownerIdentity": {
+				  "principalId": "A240Y4IHQ1Z4LV"
+				},
+				"arn": "arn:aws:s3:::torus-security-network-firewall-solution-bucket"
+			  },
+			  "object": {
+				"key": "flow/AWSLogs/871970649861/network-firewall/flow/us-east-1/torus-central-network-firewall/2023/05/04/09/871970649861_network-firewall_flow_us-east-1_torus-central-network-firewall_202305040900_69936faf.log.gz",
+				"size": 20386,
+				"eTag": "a8c393ea387d14aee162b92b8b4d9b65",
+				"versionId": "s9vCG4iYzaHfd.VfAjIQZOkN.c5HhXE9",
+				"sequencer": "00640B01D6B6B50A79"
+			  }
+			}
+		  }
+		]
+	  }`
+	var ev map[string]interface{}
+	err := json.Unmarshal([]byte(evStr), &ev)
+	if err != nil {
+	}
+	ctx := context.Background()
+	handler(ctx, ev)
 
 	lambda.Start(handler)
 }

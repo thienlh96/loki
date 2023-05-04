@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 
-	// "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -36,6 +36,7 @@ var (
 	// format: bucket-and-optional-prefix/AWSLogs/account_id/vpcflowlogs/region/year/month/day/aws_account_id_vpcflowlogs_region_flow_log_id_YYYYMMDDTHHmmZ_hash.log.gz
 	// example: 123456789012_vpcflowlogs_us-east-1_fl-1234abcd_20180620T1620Z_fe123456.log.gz
 	filenameRegex    = regexp.MustCompile(`AWSLogs\/(?P<account_id>\d+)\/(?P<type>\w+)\/(?P<region>[\w-]+)\/(?P<year>\d+)\/(?P<month>\d+)\/(?P<day>\d+)\/\d+\_(?:elasticloadbalancing|vpcflowlogs)\_\w+-\w+-\d_(?:(?:app|nlb|net)\.*?)?(?P<src>[a-zA-Z0-9\-]+)`)
+	filenameRegexFirewall    = regexp.MustCompile(`(?P<log_type>\w+)\/AWSLogs\/(?P<account_id>\d+)\/(?P<type>[\w-]+)\/(?P<src>\w+)\/(?P<region>[\w-]+)\/(?P<firewall_name>[\w-]+)\/(?P<year>\d+)\/(?P<month>\d+)\/(?P<day>\d+)\/(?P<hour>\d+)\/(?P<log_file>.*)`)
 	filenameRegexWAF = regexp.MustCompile(`AWSLogs\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<src>.*)`)
 	filenameRegexRDS = regexp.MustCompile(`(?P<rds_instance>.*)\/(?P<log_type>.*)\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<src>.*)`)
 
@@ -46,6 +47,7 @@ var (
 const (
 	FLOW_LOG_TYPE string = "vpcflowlogs"
 	LB_LOG_TYPE   string = "elasticloadbalancing"
+	NETWORK_FIREWALL_LOG_TYPE   string = "network-firewall"
 	WAF_LOG_TYPE  string = "waf"
 	RDS_LOG_TYPE  string = "rds"
 )
@@ -56,11 +58,11 @@ func getS3Client(ctx context.Context, region string) (*s3.Client, error) {
 	if c, ok := s3Clients[region]; ok {
 		s3Client = c
 	} else {
-		cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
-		// cfg, err := config.LoadDefaultConfig(context.TODO(),
-		// config.WithRegion(region),
-		// 	config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("ASIAYZ3IT4J6EWAK346R", "B5sHPZG2boj2rY6wmO5q2cEaXpj5meDgWBOxcV9O", "IQoJb3JpZ2luX2VjEKv//////////wEaCXVzLWVhc3QtMSJIMEYCIQDSJsWqpnGlQ+TUmA+Y6u3SZgPSy1zEbKY6tDGdQ3+9cQIhAP06hQGudRG41kpuhLN//lKg1jxkXCF1AbFQ5VNNNv5nKpcECKT//////////wEQABoMNjA1MjcyOTI0Nzk2Igz9sgQA+5KtkdycesIq6wPOFcFiYJZK7skJt/ZHd5jMWeufCjpEXOZuk/xUGy2nUBje8L5/IVdi1Qdr/6CUFFOSGe4r0DYr+7m972RdDz2wRIrbThhnd6A0zixdBkybEh4Nww4nHztoJZlM/0eAtvR4ck2wu4x/e+1II037yQyczCqt7nTxQGltaV8GEwk1/nbxRzpph9bjXP65Ii8kCCCSJQVysPjz7NDEKIN+EX0KfUNH82LFXNtfzsD/7Ie92qJJrm1E4Ku5HSNOv+FSdI4rW1UAgngoKHP2ZkQAY5Ntgo+QfHbrlvFpMWlkknlbhuOo/1rI8UTN5DXgkjzv0+dh8HTtp7V/voiFAJr0vPKFo5WuFU5FPdyL+Kk7bQEB7vj934tytpc9z12F3U0v6GMNkBshbRZxFL56aKWuI5et0tLW82SqNY/zsrAbcD1Y0PYJIFEwli8T6yJ4REyyLY7+dahnbAhF8dWtbkoL20WULK8QJ6Uuzb2JpISoERHKTZbzAS7UsCNjO9S48kjdIqFglFENG4VMqsaRs034egKMzNG5eqw8TvKTThjwG9r4z1c5lGrOaWmnOU8VY6+QBgXP8ICM/A3Xs3GpernP7WROENsDfIfeViO+zSTHvZQma01OVLYG/3SCKgzkNjCWWJherbwKnFgoB6KfhDDx1YmiBjqlAe/WAf1fzv5kZR0ne0dY/y0slvKPHRHbPSRQnJ0e3qFKI4M89gS3/G0oYPqYA0j6MYTGwQsfDQqubBADhyvP4ZFSCDJLc9xkPIc4ZUEWLqnAdQGabZY097GmW6MBh7LrljUcC3HiwOEkHaq387fH/xyKD8Gyc82XzvoDolg1vjbaslVnbFDWWDRPMP2tceHVDyYC7MzFW0OI+YRh3SkzZ9AIBVwR8A==")),
-		// )
+		// cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+		cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("ASIA4WBMAG4C6BPAXTXQ", "7aCHekUmYGLhyWEqvrGLxkX0dUE36mcyDDUEm4wK", "IQoJb3JpZ2luX2VjEOL//////////wEaCXVzLWVhc3QtMSJHMEUCIBasZUhFqSOoUF2Mk2F8/Oh7lH5GAXHHmU0Pc0rrM5xUAiEAmDSQ566obKwgMshID5DCzPx8iPTqmJIX7C+pH4NZvxYqlwQI6///////////ARABGgw4NzE5NzA2NDk4NjEiDDK0MeguKknFHOAFdCrrA/07bSg8ySi2zcAT3amNVGaCtQo5O81O2mWOcZjPgJy0Oe7WSLhX/Eio0gZkdklb+10YvFV+PKjqHDAxZTeMgIvBKcQOKVoPj50yt2ZSFrs5XgmqyLlkrj/5C5chBiQNajK8etTb67MOfrQSSZYQ0Wq/AC1QMLQE9pelXEEq0QPu7T/cbkhpPAQH/4pwOYS9sEs5JOpLDFe82vzqwOLVNzVJ3Kvz/u3uruOG0RX9PQrNH6mE7NZPI/IZHERv0h3QPFIjRT5nWCtoZybysKciao4UmWuku96ZKxQUkdso5sCM4sL/75OHAfQjWRi6u63yWpK6SWcR6lAKJnxVFWTP9ERMLOQDUOs1xOVgidCcFazbP5bSlnhyX+Pua9fyO5RdLKqAKpq3nDcaGDV+rwT6yo7WHjaGPMG9JK1s6QoJZvvDyA3I41K85iQrY1f701ISV7wQjlqOaVUzHbFJoeo2fqY3tJF5Uo2bPkfjAyAi2sZaqFysaSAoh4IyMlnuy0ZOSxcap4efaCIms2UfbQMZ99qR9AZCBBg66azYhu24ooRKe1P7AZe6gv0BKl1satsdTkmUDQIrew+3MqKRYv+1KV82zkseIg4f/seTUi8VUcInzW3ck2GLIhbTr5Tsz/6yq/fvILlaCpcg6/tqMKeBzqIGOqYBwtbk0wLfoUo8BqwJg+Y5roZtjY7uLHkeOfeyaUvf/m6aDGSCAAZ2yQ1y0lTYu+Lc/VZ4GuWWKHCpKbGfsugyl2yIMhcvWTa02GghE4Y5PDbRXrrT9cDhbb9DfQ/PfyDxoIQ2f+OG6+/FcjWXrUy6ofei3pM61OX8CwZnZuMqk459Pivxy0EVWT/cT/HNQfWa4HZpLdzpI6miGso1kvTCXak/BW607g==")),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -93,6 +95,8 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 		logType = "s3_rds_" + labels["log_type"]
 	} else if labels["type"] == WAF_LOG_TYPE {
 		logType = "s3_waf"
+	} else if labels["type"] == NETWORK_FIREWALL_LOG_TYPE {
+		logType = "s3_network_firewall"
 	}
 
 	ls := model.LabelSet{
@@ -150,6 +154,16 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 			}
 
 		}
+		if labels["type"] == NETWORK_FIREWALL_LOG_TYPE {
+			tsJson := gjson.Get(log_line, "event_timestamp")
+			tsStr := tsJson.String()
+			// tsStr = tsStr[:len(tsStr)]
+			intTime, errInt := strconv.ParseInt(tsStr, 10, 64)
+			if errInt == nil {
+				timestamp = time.Unix(intTime, 0)
+			}
+
+		}
 		if err := b.add(ctx, entry{ls, logproto.Entry{
 			Line:      log_line,
 			Timestamp: timestamp,
@@ -176,6 +190,14 @@ func getLabels(record events.S3EventRecord) (map[string]string, error) {
 	match := filenameRegex.FindStringSubmatch(labels["key"])
 	if len(match) > 0 {
 		for i, name := range filenameRegex.SubexpNames() {
+			if i != 0 && name != "" {
+				labels[name] = match[i]
+			}
+		}
+	}
+	match = filenameRegexFirewall.FindStringSubmatch(labels["key"])
+	if len(match) > 0 {
+		for i, name := range filenameRegexFirewall.SubexpNames() {
 			if i != 0 && name != "" {
 				labels[name] = match[i]
 			}
