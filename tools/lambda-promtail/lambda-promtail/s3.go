@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 
-	"github.com/aws/aws-sdk-go-v2/credentials"
+	// "github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -58,11 +58,11 @@ func getS3Client(ctx context.Context, region string) (*s3.Client, error) {
 	if c, ok := s3Clients[region]; ok {
 		s3Client = c
 	} else {
-		// cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
-		cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(region),
-			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("ASIA4WBMAG4C6BPAXTXQ", "7aCHekUmYGLhyWEqvrGLxkX0dUE36mcyDDUEm4wK", "IQoJb3JpZ2luX2VjEOL//////////wEaCXVzLWVhc3QtMSJHMEUCIBasZUhFqSOoUF2Mk2F8/Oh7lH5GAXHHmU0Pc0rrM5xUAiEAmDSQ566obKwgMshID5DCzPx8iPTqmJIX7C+pH4NZvxYqlwQI6///////////ARABGgw4NzE5NzA2NDk4NjEiDDK0MeguKknFHOAFdCrrA/07bSg8ySi2zcAT3amNVGaCtQo5O81O2mWOcZjPgJy0Oe7WSLhX/Eio0gZkdklb+10YvFV+PKjqHDAxZTeMgIvBKcQOKVoPj50yt2ZSFrs5XgmqyLlkrj/5C5chBiQNajK8etTb67MOfrQSSZYQ0Wq/AC1QMLQE9pelXEEq0QPu7T/cbkhpPAQH/4pwOYS9sEs5JOpLDFe82vzqwOLVNzVJ3Kvz/u3uruOG0RX9PQrNH6mE7NZPI/IZHERv0h3QPFIjRT5nWCtoZybysKciao4UmWuku96ZKxQUkdso5sCM4sL/75OHAfQjWRi6u63yWpK6SWcR6lAKJnxVFWTP9ERMLOQDUOs1xOVgidCcFazbP5bSlnhyX+Pua9fyO5RdLKqAKpq3nDcaGDV+rwT6yo7WHjaGPMG9JK1s6QoJZvvDyA3I41K85iQrY1f701ISV7wQjlqOaVUzHbFJoeo2fqY3tJF5Uo2bPkfjAyAi2sZaqFysaSAoh4IyMlnuy0ZOSxcap4efaCIms2UfbQMZ99qR9AZCBBg66azYhu24ooRKe1P7AZe6gv0BKl1satsdTkmUDQIrew+3MqKRYv+1KV82zkseIg4f/seTUi8VUcInzW3ck2GLIhbTr5Tsz/6yq/fvILlaCpcg6/tqMKeBzqIGOqYBwtbk0wLfoUo8BqwJg+Y5roZtjY7uLHkeOfeyaUvf/m6aDGSCAAZ2yQ1y0lTYu+Lc/VZ4GuWWKHCpKbGfsugyl2yIMhcvWTa02GghE4Y5PDbRXrrT9cDhbb9DfQ/PfyDxoIQ2f+OG6+/FcjWXrUy6ofei3pM61OX8CwZnZuMqk459Pivxy0EVWT/cT/HNQfWa4HZpLdzpI6miGso1kvTCXak/BW607g==")),
-		)
+		cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+		// cfg, err := config.LoadDefaultConfig(context.TODO(),
+		// config.WithRegion(region),
+		// 	config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("ASIA4WBMAG4C6BPAXTXQ", "7aCHekUmYGLhyWEqvrGLxkX0dUE36mcyDDUEm4wK", "IQoJb3JpZ2luX2VjEOL//////////wEaCXVzLWVhc3QtMSJHMEUCIBasZUhFqSOoUF2Mk2F8/Oh7lH5GAXHHmU0Pc0rrM5xUAiEAmDSQ566obKwgMshID5DCzPx8iPTqmJIX7C+pH4NZvxYqlwQI6///////////ARABGgw4NzE5NzA2NDk4NjEiDDK0MeguKknFHOAFdCrrA/07bSg8ySi2zcAT3amNVGaCtQo5O81O2mWOcZjPgJy0Oe7WSLhX/Eio0gZkdklb+10YvFV+PKjqHDAxZTeMgIvBKcQOKVoPj50yt2ZSFrs5XgmqyLlkrj/5C5chBiQNajK8etTb67MOfrQSSZYQ0Wq/AC1QMLQE9pelXEEq0QPu7T/cbkhpPAQH/4pwOYS9sEs5JOpLDFe82vzqwOLVNzVJ3Kvz/u3uruOG0RX9PQrNH6mE7NZPI/IZHERv0h3QPFIjRT5nWCtoZybysKciao4UmWuku96ZKxQUkdso5sCM4sL/75OHAfQjWRi6u63yWpK6SWcR6lAKJnxVFWTP9ERMLOQDUOs1xOVgidCcFazbP5bSlnhyX+Pua9fyO5RdLKqAKpq3nDcaGDV+rwT6yo7WHjaGPMG9JK1s6QoJZvvDyA3I41K85iQrY1f701ISV7wQjlqOaVUzHbFJoeo2fqY3tJF5Uo2bPkfjAyAi2sZaqFysaSAoh4IyMlnuy0ZOSxcap4efaCIms2UfbQMZ99qR9AZCBBg66azYhu24ooRKe1P7AZe6gv0BKl1satsdTkmUDQIrew+3MqKRYv+1KV82zkseIg4f/seTUi8VUcInzW3ck2GLIhbTr5Tsz/6yq/fvILlaCpcg6/tqMKeBzqIGOqYBwtbk0wLfoUo8BqwJg+Y5roZtjY7uLHkeOfeyaUvf/m6aDGSCAAZ2yQ1y0lTYu+Lc/VZ4GuWWKHCpKbGfsugyl2yIMhcvWTa02GghE4Y5PDbRXrrT9cDhbb9DfQ/PfyDxoIQ2f+OG6+/FcjWXrUy6ofei3pM61OX8CwZnZuMqk459Pivxy0EVWT/cT/HNQfWa4HZpLdzpI6miGso1kvTCXak/BW607g==")),
+		// )
 		if err != nil {
 			return nil, err
 		}
