@@ -176,6 +176,8 @@ func parseS3Log(ctx context.Context, b *batch, labels map[string]string, obj io.
 			}
 
 		}
+		log_labels:= parser_json(log_line)
+		ls=ls.Merge(log_labels)
 		if err := b.add(ctx, entry{ls, logproto.Entry{
 			Line:      log_line,
 			Timestamp: timestamp,

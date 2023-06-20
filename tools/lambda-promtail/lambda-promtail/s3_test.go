@@ -46,47 +46,47 @@ func Test_getLabels(t *testing.T) {
 			"day":           "07",
 			"key":           "mothership-instance-1/general_log/year=2023/month=04/day=07/hour=08/1680857100495.log",
 			"month":         "04",
-			"log_type":           "general_log",
+			"log_type":      "general_log",
 			"src":           "rds_logs_test",
 			"type":          "rds",
 			"year":          "2023",
 			"hour":          "08",
-			"rds_instance":          "mothership-instance-1",
+			"rds_instance":  "mothership-instance-1",
 		},
 		wantErr: false,
 	},
-	{
-		name: "s3_waf",
-		args: args{
-			record: events.S3EventRecord{
-				AWSRegion: "us-east-1",
-				S3: events.S3Entity{
-					Bucket: events.S3Bucket{
-						Name: "rds_logs_test",
-						OwnerIdentity: events.S3UserIdentity{
-							PrincipalID: "test",
+		{
+			name: "s3_waf",
+			args: args{
+				record: events.S3EventRecord{
+					AWSRegion: "us-east-1",
+					S3: events.S3Entity{
+						Bucket: events.S3Bucket{
+							Name: "rds_logs_test",
+							OwnerIdentity: events.S3UserIdentity{
+								PrincipalID: "test",
+							},
 						},
-					},
-					Object: events.S3Object{
-						Key: "AWSLogs/year=2023/month=03/day=10/hour=03/aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-03-20-56-fafab3d8-0af4-4c40-97f2-6cb2914b8a8f",
+						Object: events.S3Object{
+							Key: "AWSLogs/year=2023/month=03/day=10/hour=03/aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-03-20-56-fafab3d8-0af4-4c40-97f2-6cb2914b8a8f",
+						},
 					},
 				},
 			},
+			want: map[string]string{
+				"bucket":        "rds_logs_test",
+				"bucket_owner":  "test",
+				"bucket_region": "us-east-1",
+				"day":           "10",
+				"key":           "AWSLogs/year=2023/month=03/day=10/hour=03/aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-03-20-56-fafab3d8-0af4-4c40-97f2-6cb2914b8a8f",
+				"month":         "03",
+				"src":           "aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-03-20-56-fafab3d8-0af4-4c40-97f2-6cb2914b8a8f",
+				"type":          "waf",
+				"year":          "2023",
+				"hour":          "03",
+			},
+			wantErr: false,
 		},
-		want: map[string]string{
-			"bucket":        "rds_logs_test",
-			"bucket_owner":  "test",
-			"bucket_region": "us-east-1",
-			"day":           "10",
-			"key":           "AWSLogs/year=2023/month=03/day=10/hour=03/aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-03-20-56-fafab3d8-0af4-4c40-97f2-6cb2914b8a8f",
-			"month":         "03",
-			"src":           "aws-waf-logs-belletorus-wl-stag-log-deliver-stream-2-2023-03-10-03-20-56-fafab3d8-0af4-4c40-97f2-6cb2914b8a8f",
-			"type":          "waf",
-			"year":          "2023",
-			"hour":          "03",
-		},
-		wantErr: false,
-	},
 		{
 			name: "s3_lb",
 			args: args{
@@ -194,10 +194,10 @@ func Test_parseS3Log(t *testing.T) {
 					"type":       WAF_LOG_TYPE,
 					"src":        "source",
 					"account_id": "123456789",
-					"key": "waf-log-test.log",
+					"key":        "waf-log-test.log",
 				},
 			},
-			expectedStream: "{__aws_log_type=\"s3_waf\", __aws_s3_waf=\"source\", __aws_s3_waf_owner=\"123456789\"}"			,
+			expectedStream: "{__aws_log_type=\"s3_waf\", __aws_s3_waf=\"source\", __aws_s3_waf_owner=\"123456789\"}",
 			wantErr:        false,
 		},
 		{
@@ -212,9 +212,8 @@ func Test_parseS3Log(t *testing.T) {
 					"type":       RDS_LOG_TYPE,
 					"src":        "source",
 					"account_id": "123456789",
-					"log_type": "audit",
-					"key": "audit.gz",
-
+					"log_type":   "audit",
+					"key":        "audit.gz",
 				},
 			},
 			expectedStream: `{__aws_log_type="s3_rds_audit", __aws_rds_audit="source", __aws_s3_rds_audit_owner="123456789"}`,
@@ -232,9 +231,8 @@ func Test_parseS3Log(t *testing.T) {
 					"type":       RDS_LOG_TYPE,
 					"src":        "source",
 					"account_id": "123456789",
-					"log_type": "error",
-					"key": "rds_error.gz",
-
+					"log_type":   "error",
+					"key":        "rds_error.gz",
 				},
 			},
 			expectedStream: `{__aws_log_type="s3_rds_error", __aws_rds_error="source", __aws_s3_rds_error_owner="123456789"}`,
@@ -252,9 +250,8 @@ func Test_parseS3Log(t *testing.T) {
 					"type":       RDS_LOG_TYPE,
 					"src":        "source",
 					"account_id": "123456789",
-					"log_type": "general",
-					"key": "rds_general.gz",
-
+					"log_type":   "general",
+					"key":        "rds_general.gz",
 				},
 			},
 			expectedStream: `{__aws_log_type="s3_rds_general", __aws_rds_general="source", __aws_s3_rds_general_owner="123456789"}`,
@@ -272,7 +269,7 @@ func Test_parseS3Log(t *testing.T) {
 					"type":       FLOW_LOG_TYPE,
 					"src":        "source",
 					"account_id": "123456789",
-					"key": "vpcflowlog.log.gz",
+					"key":        "vpcflowlog.log.gz",
 				},
 			},
 			expectedStream: `{__aws_log_type="s3_vpc_flow", __aws_s3_vpc_flow="source", __aws_s3_vpc_flow_owner="123456789"}`,
@@ -290,8 +287,7 @@ func Test_parseS3Log(t *testing.T) {
 					"type":       LB_LOG_TYPE,
 					"src":        "source",
 					"account_id": "123456789",
-					"key": "albaccesslog.log.gz",
-
+					"key":        "albaccesslog.log.gz",
 				},
 			},
 			expectedStream: `{__aws_log_type="s3_lb", __aws_s3_lb="source", __aws_s3_lb_owner="123456789"}`,
