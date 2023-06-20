@@ -205,7 +205,7 @@ func main() {
 	// os.Setenv("USERNAME", "")
 	// os.Setenv("OMIT_EXTRA_LABELS_PREFIX", "true")
 	// os.Setenv("SKIP_TLS_VERIFY", "true")
-	// os.Setenv("TENANT_ID", "	torus-tenant")
+	// os.Setenv("TENANT_ID", "torus-tenant")
 	// os.Setenv("WRITE_ADDRESS", "http://gateway.loki.torusai.internal:88/loki/api/v1/push")
 
 	setupArguments()

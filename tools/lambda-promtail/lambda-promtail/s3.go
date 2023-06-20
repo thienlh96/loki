@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -22,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 
-	// "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -35,21 +36,21 @@ var (
 	// source: https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-s3.html#flow-logs-s3-path
 	// format: bucket-and-optional-prefix/AWSLogs/account_id/vpcflowlogs/region/year/month/day/aws_account_id_vpcflowlogs_region_flow_log_id_YYYYMMDDTHHmmZ_hash.log.gz
 	// example: 123456789012_vpcflowlogs_us-east-1_fl-1234abcd_20180620T1620Z_fe123456.log.gz
-	filenameRegex    = regexp.MustCompile(`AWSLogs\/(?P<account_id>\d+)\/(?P<type>\w+)\/(?P<region>[\w-]+)\/(?P<year>\d+)\/(?P<month>\d+)\/(?P<day>\d+)\/\d+\_(?:elasticloadbalancing|vpcflowlogs)\_\w+-\w+-\d_(?:(?:app|nlb|net)\.*?)?(?P<src>[a-zA-Z0-9\-]+)`)
-	filenameRegexFirewall    = regexp.MustCompile(`(?P<log_type>\w+)\/AWSLogs\/(?P<account_id>\d+)\/(?P<type>[\w-]+)\/(?P<src>\w+)\/(?P<region>[\w-]+)\/(?P<firewall_name>[\w-]+)\/(?P<year>\d+)\/(?P<month>\d+)\/(?P<day>\d+)\/(?P<hour>\d+)\/(?P<log_file>.*)`)
-	filenameRegexWAF = regexp.MustCompile(`AWSLogs\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<src>.*)`)
-	filenameRegexRDS = regexp.MustCompile(`(?P<rds_instance>.*)\/(?P<log_type>.*)\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<src>.*)`)
+	filenameRegex         = regexp.MustCompile(`AWSLogs\/(?P<account_id>\d+)\/(?P<type>\w+)\/(?P<region>[\w-]+)\/(?P<year>\d+)\/(?P<month>\d+)\/(?P<day>\d+)\/\d+\_(?:elasticloadbalancing|vpcflowlogs)\_\w+-\w+-\d_(?:(?:app|nlb|net)\.*?)?(?P<src>[a-zA-Z0-9\-]+)`)
+	filenameRegexFirewall = regexp.MustCompile(`(?P<log_type>\w+)\/AWSLogs\/(?P<account_id>\d+)\/(?P<type>[\w-]+)\/(?P<src>\w+)\/(?P<region>[\w-]+)\/(?P<firewall_name>[\w-]+)\/(?P<year>\d+)\/(?P<month>\d+)\/(?P<day>\d+)\/(?P<hour>\d+)\/(?P<log_file>.*)`)
+	filenameRegexWAF      = regexp.MustCompile(`AWSLogs\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<src>.*)`)
+	filenameRegexRDS      = regexp.MustCompile(`(?P<rds_instance>.*)\/(?P<log_type>.*)\/year\=(?P<year>\d+)\/month\=(?P<month>\d+)\/day\=(?P<day>\d+)\/hour\=(?P<hour>\d+)\/(?P<src>.*)`)
 
 	// regex that extracts the timestamp (RFC3339) from message log
 	timestampRegex = regexp.MustCompile(`\w+ (?P<timestamp>\d+-\d+-\d+T\d+:\d+:\d+\.\d+Z)`)
 )
 
 const (
-	FLOW_LOG_TYPE string = "vpcflowlogs"
-	LB_LOG_TYPE   string = "elasticloadbalancing"
-	NETWORK_FIREWALL_LOG_TYPE   string = "network-firewall"
-	WAF_LOG_TYPE  string = "waf"
-	RDS_LOG_TYPE  string = "rds"
+	FLOW_LOG_TYPE             string = "vpcflowlogs"
+	LB_LOG_TYPE               string = "elasticloadbalancing"
+	NETWORK_FIREWALL_LOG_TYPE string = "network-firewall"
+	WAF_LOG_TYPE              string = "waf"
+	RDS_LOG_TYPE              string = "rds"
 )
 
 func getS3Client(ctx context.Context, region string) (*s3.Client, error) {
@@ -58,16 +59,27 @@ func getS3Client(ctx context.Context, region string) (*s3.Client, error) {
 	if c, ok := s3Clients[region]; ok {
 		s3Client = c
 	} else {
-		cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
-		// cfg, err := config.LoadDefaultConfig(context.TODO(),
-		// config.WithRegion(region),
-		// 	config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("ASIA4WBMAG4C6BPAXTXQ", "7aCHekUmYGLhyWEqvrGLxkX0dUE36mcyDDUEm4wK", "IQoJb3JpZ2luX2VjEOL//////////wEaCXVzLWVhc3QtMSJHMEUCIBasZUhFqSOoUF2Mk2F8/Oh7lH5GAXHHmU0Pc0rrM5xUAiEAmDSQ566obKwgMshID5DCzPx8iPTqmJIX7C+pH4NZvxYqlwQI6///////////ARABGgw4NzE5NzA2NDk4NjEiDDK0MeguKknFHOAFdCrrA/07bSg8ySi2zcAT3amNVGaCtQo5O81O2mWOcZjPgJy0Oe7WSLhX/Eio0gZkdklb+10YvFV+PKjqHDAxZTeMgIvBKcQOKVoPj50yt2ZSFrs5XgmqyLlkrj/5C5chBiQNajK8etTb67MOfrQSSZYQ0Wq/AC1QMLQE9pelXEEq0QPu7T/cbkhpPAQH/4pwOYS9sEs5JOpLDFe82vzqwOLVNzVJ3Kvz/u3uruOG0RX9PQrNH6mE7NZPI/IZHERv0h3QPFIjRT5nWCtoZybysKciao4UmWuku96ZKxQUkdso5sCM4sL/75OHAfQjWRi6u63yWpK6SWcR6lAKJnxVFWTP9ERMLOQDUOs1xOVgidCcFazbP5bSlnhyX+Pua9fyO5RdLKqAKpq3nDcaGDV+rwT6yo7WHjaGPMG9JK1s6QoJZvvDyA3I41K85iQrY1f701ISV7wQjlqOaVUzHbFJoeo2fqY3tJF5Uo2bPkfjAyAi2sZaqFysaSAoh4IyMlnuy0ZOSxcap4efaCIms2UfbQMZ99qR9AZCBBg66azYhu24ooRKe1P7AZe6gv0BKl1satsdTkmUDQIrew+3MqKRYv+1KV82zkseIg4f/seTUi8VUcInzW3ck2GLIhbTr5Tsz/6yq/fvILlaCpcg6/tqMKeBzqIGOqYBwtbk0wLfoUo8BqwJg+Y5roZtjY7uLHkeOfeyaUvf/m6aDGSCAAZ2yQ1y0lTYu+Lc/VZ4GuWWKHCpKbGfsugyl2yIMhcvWTa02GghE4Y5PDbRXrrT9cDhbb9DfQ/PfyDxoIQ2f+OG6+/FcjWXrUy6ofei3pM61OX8CwZnZuMqk459Pivxy0EVWT/cT/HNQfWa4HZpLdzpI6miGso1kvTCXak/BW607g==")),
-		// )
-		if err != nil {
-			return nil, err
+
+		if os.Getenv("MODE") == "DEV" {
+			cfg, err := config.LoadDefaultConfig(context.TODO(),
+				config.WithRegion(region),
+				config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("ASIA4WBMAG4C6BPAXTXQ", "7aCHekUmYGLhyWEqvrGLxkX0dUE36mcyDDUEm4wK", "IQoJb3JpZ2luX2VjEOL//////////wEaCXVzLWVhc3QtMSJHMEUCIBasZUhFqSOoUF2Mk2F8/Oh7lH5GAXHHmU0Pc0rrM5xUAiEAmDSQ566obKwgMshID5DCzPx8iPTqmJIX7C+pH4NZvxYqlwQI6///////////ARABGgw4NzE5NzA2NDk4NjEiDDK0MeguKknFHOAFdCrrA/07bSg8ySi2zcAT3amNVGaCtQo5O81O2mWOcZjPgJy0Oe7WSLhX/Eio0gZkdklb+10YvFV+PKjqHDAxZTeMgIvBKcQOKVoPj50yt2ZSFrs5XgmqyLlkrj/5C5chBiQNajK8etTb67MOfrQSSZYQ0Wq/AC1QMLQE9pelXEEq0QPu7T/cbkhpPAQH/4pwOYS9sEs5JOpLDFe82vzqwOLVNzVJ3Kvz/u3uruOG0RX9PQrNH6mE7NZPI/IZHERv0h3QPFIjRT5nWCtoZybysKciao4UmWuku96ZKxQUkdso5sCM4sL/75OHAfQjWRi6u63yWpK6SWcR6lAKJnxVFWTP9ERMLOQDUOs1xOVgidCcFazbP5bSlnhyX+Pua9fyO5RdLKqAKpq3nDcaGDV+rwT6yo7WHjaGPMG9JK1s6QoJZvvDyA3I41K85iQrY1f701ISV7wQjlqOaVUzHbFJoeo2fqY3tJF5Uo2bPkfjAyAi2sZaqFysaSAoh4IyMlnuy0ZOSxcap4efaCIms2UfbQMZ99qR9AZCBBg66azYhu24ooRKe1P7AZe6gv0BKl1satsdTkmUDQIrew+3MqKRYv+1KV82zkseIg4f/seTUi8VUcInzW3ck2GLIhbTr5Tsz/6yq/fvILlaCpcg6/tqMKeBzqIGOqYBwtbk0wLfoUo8BqwJg+Y5roZtjY7uLHkeOfeyaUvf/m6aDGSCAAZ2yQ1y0lTYu+Lc/VZ4GuWWKHCpKbGfsugyl2yIMhcvWTa02GghE4Y5PDbRXrrT9cDhbb9DfQ/PfyDxoIQ2f+OG6+/FcjWXrUy6ofei3pM61OX8CwZnZuMqk459Pivxy0EVWT/cT/HNQfWa4HZpLdzpI6miGso1kvTCXak/BW607g==")),
+			)
+			if err != nil {
+				return nil, err
+			}
+			s3Client = s3.NewFromConfig(cfg)
+			s3Clients[region] = s3Client
+		} else {
+			cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+			if err != nil {
+				return nil, err
+			}
+			s3Client = s3.NewFromConfig(cfg)
+			s3Clients[region] = s3Client
+
 		}
-		s3Client = s3.NewFromConfig(cfg)
-		s3Clients[region] = s3Client
+
 	}
 	return s3Client, nil
 }
