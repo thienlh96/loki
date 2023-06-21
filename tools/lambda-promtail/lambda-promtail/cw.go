@@ -29,7 +29,8 @@ func parseCWEvent(ctx context.Context, b *batch, ev *events.CloudwatchLogsEvent)
 
 	for _, event := range data.LogEvents {
 		timestamp := time.UnixMilli(event.Timestamp)
-
+		log_labels:=parser_json(event.Message)
+		labels=labels.Merge(log_labels)
 		if err := b.add(ctx, entry{labels, logproto.Entry{
 			Line:      event.Message,
 			Timestamp: timestamp,

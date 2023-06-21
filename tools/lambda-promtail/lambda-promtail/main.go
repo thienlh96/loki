@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
+	// "github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/go-kit/log/level"
+	// "github.com/go-kit/log/level"
 	"github.com/grafana/dskit/backoff"
 	"github.com/prometheus/common/model"
 )
@@ -178,8 +178,8 @@ func handler(ctx context.Context, ev map[string]interface{}) error {
 
 	event, err := checkEventType(ev)
 	if err != nil {
-		level.Error(*pClient.log).Log("err", fmt.Errorf("invalid event: %s\n", ev))
-		return err
+		// level.Error(*pClient.log).Log("err", fmt.Errorf("invalid event: %s\n", ev))
+		return processEvent(ctx, ev, pClient )
 	}
 
 	switch evt := event.(type) {
@@ -199,62 +199,146 @@ func handler(ctx context.Context, ev map[string]interface{}) error {
 }
 
 func main() {
-	
-	// os.Setenv("EXTRA_LABELS", "env,network,namespace,aws-service")
-	// os.Setenv("LOG_LEVELLOG_LEVEL", "debug")
-	// os.Setenv("USERNAME", "")
-	// os.Setenv("OMIT_EXTRA_LABELS_PREFIX", "true")
-	// os.Setenv("SKIP_TLS_VERIFY", "true")
-	// os.Setenv("TENANT_ID", "torus-tenant")
-	// os.Setenv("WRITE_ADDRESS", "http://gateway.loki.torusai.internal:88/loki/api/v1/push")
+
+	os.Setenv("EXTRA_LABELS", "env,network,namespace,aws-service")
+	os.Setenv("LOG_LEVELLOG_LEVEL", "debug")
+	os.Setenv("USERNAME", "")
+	os.Setenv("OMIT_EXTRA_LABELS_PREFIX", "true")
+	os.Setenv("SKIP_TLS_VERIFY", "true")
+	os.Setenv("TENANT_ID", "torus-tenant")
+	os.Setenv("WRITE_ADDRESS", "http://localhost:8080/loki/api/v1/push")
 
 	setupArguments()
 
-	// evStr := `{
-	// 	"Records": [
-	// 	  {
-	// 		"eventVersion": "2.1",
-	// 		"eventSource": "aws:s3",
-	// 		"awsRegion": "us-east-1",
-	// 		"eventTime": "2023-03-10T10:09:26.809Z",
-	// 		"eventName": "ObjectCreated:Put",
-	// 		"userIdentity": {
-	// 		  "principalId": "AWS:AROAYZ3IT4J6OSW5LUHQT:AWSFirehoseToS3"
-	// 		},
-	// 		"requestParameters": {
-	// 		  "sourceIPAddress": "44.196.47.96"
-	// 		},
-	// 		"responseElements": {
-	// 		  "x-amz-request-id": "Y4SA1BGWVTADQ8G3",
-	// 		  "x-amz-id-2": "6kbpmJFBlnEUdn3sh5DZRbMayOOj4cBnYtS99I8fJOJ0tSf4LnMxey3qDt/qCdrRcXr35dbqiZbuqBoyUXjoVBPbenIznewp"
-	// 		},
-	// 		"s3": {
-	// 		  "s3SchemaVersion": "1.0",
-	// 		  "configurationId": "a34939c2-38a7-46d7-8476-953a5a11d66c",
-	// 		  "bucket": {
-	// 			"name": "torus-security-network-firewall-solution-bucket",
-	// 			"ownerIdentity": {
-	// 			  "principalId": "A240Y4IHQ1Z4LV"
-	// 			},
-	// 			"arn": "arn:aws:s3:::torus-security-network-firewall-solution-bucket"
-	// 		  },
-	// 		  "object": {
-	// 			"key": "flow/AWSLogs/871970649861/network-firewall/flow/us-east-1/torus-central-network-firewall/2023/05/04/09/871970649861_network-firewall_flow_us-east-1_torus-central-network-firewall_202305040900_69936faf.log.gz",
-	// 			"size": 20386,
-	// 			"eTag": "a8c393ea387d14aee162b92b8b4d9b65",
-	// 			"versionId": "s9vCG4iYzaHfd.VfAjIQZOkN.c5HhXE9",
-	// 			"sequencer": "00640B01D6B6B50A79"
-	// 		  }
-	// 		}
-	// 	  }
-	// 	]
-	//   }`
-	// var ev map[string]interface{}
-	// err := json.Unmarshal([]byte(evStr), &ev)
-	// if err != nil {
-	// }
-	// ctx := context.Background()
-	// handler(ctx, ev)
+	evStr := `{
+		"body": "eyJ0ZXN0IjoiYm9keSJ9",
+		"resource": "/{proxy+}",
+		"path": "/path/to/resource",
+		"httpMethod": "POST",
+		"isBase64Encoded": true,
+		"queryStringParameters": {
+		  "foo": "bar"
+		},
+		"multiValueQueryStringParameters": {
+		  "foo": [
+			"bar"
+		  ]
+		},
+		"pathParameters": {
+		  "proxy": "/path/to/resource"
+		},
+		"stageVariables": {
+		  "baz": "qux"
+		},
+		"headers": {
+		  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+		  "Accept-Encoding": "gzip, deflate, sdch",
+		  "Accept-Language": "en-US,en;q=0.8",
+		  "Cache-Control": "max-age=0",
+		  "CloudFront-Forwarded-Proto": "https",
+		  "CloudFront-Is-Desktop-Viewer": "true",
+		  "CloudFront-Is-Mobile-Viewer": "false",
+		  "CloudFront-Is-SmartTV-Viewer": "false",
+		  "CloudFront-Is-Tablet-Viewer": "false",
+		  "CloudFront-Viewer-Country": "US",
+		  "Host": "1234567890.execute-api.us-east-1.amazonaws.com",
+		  "Upgrade-Insecure-Requests": "1",
+		  "User-Agent": "Custom User Agent String",
+		  "Via": "1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)",
+		  "X-Amz-Cf-Id": "cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA==",
+		  "X-Forwarded-For": "127.0.0.1, 127.0.0.2",
+		  "X-Forwarded-Port": "443",
+		  "X-Forwarded-Proto": "https"
+		},
+		"multiValueHeaders": {
+		  "Accept": [
+			"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+		  ],
+		  "Accept-Encoding": [
+			"gzip, deflate, sdch"
+		  ],
+		  "Accept-Language": [
+			"en-US,en;q=0.8"
+		  ],
+		  "Cache-Control": [
+			"max-age=0"
+		  ],
+		  "CloudFront-Forwarded-Proto": [
+			"https"
+		  ],
+		  "CloudFront-Is-Desktop-Viewer": [
+			"true"
+		  ],
+		  "CloudFront-Is-Mobile-Viewer": [
+			"false"
+		  ],
+		  "CloudFront-Is-SmartTV-Viewer": [
+			"false"
+		  ],
+		  "CloudFront-Is-Tablet-Viewer": [
+			"false"
+		  ],
+		  "CloudFront-Viewer-Country": [
+			"US"
+		  ],
+		  "Host": [
+			"0123456789.execute-api.us-east-1.amazonaws.com"
+		  ],
+		  "Upgrade-Insecure-Requests": [
+			"1"
+		  ],
+		  "User-Agent": [
+			"Custom User Agent String"
+		  ],
+		  "Via": [
+			"1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)"
+		  ],
+		  "X-Amz-Cf-Id": [
+			"cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA=="
+		  ],
+		  "X-Forwarded-For": [
+			"127.0.0.1, 127.0.0.2"
+		  ],
+		  "X-Forwarded-Port": [
+			"443"
+		  ],
+		  "X-Forwarded-Proto": [
+			"https"
+		  ]
+		},
+		"requestContext": {
+		  "accountId": "123456789012",
+		  "resourceId": "123456",
+		  "stage": "prod",
+		  "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+		  "requestTime": "09/Apr/2015:12:34:56 +0000",
+		  "requestTimeEpoch": 1428582896000,
+		  "identity": {
+			"cognitoIdentityPoolId": null,
+			"accountId": null,
+			"cognitoIdentityId": null,
+			"caller": null,
+			"accessKey": null,
+			"sourceIp": "127.0.0.1",
+			"cognitoAuthenticationType": null,
+			"cognitoAuthenticationProvider": null,
+			"userArn": null,
+			"userAgent": "Custom User Agent String",
+			"user": null
+		  },
+		  "path": "/prod/path/to/resource",
+		  "resourcePath": "/{proxy+}",
+		  "httpMethod": "POST",
+		  "apiId": "1234567890",
+		  "protocol": "HTTP/1.1"
+		}
+	  }`
+	var ev map[string]interface{}
+	err := json.Unmarshal([]byte(evStr), &ev)
+	if err != nil {
+	}
+	ctx := context.Background()
+	handler(ctx, ev)
 
-	lambda.Start(handler)
+	// lambda.Start(handler)
 }
