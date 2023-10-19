@@ -44,3 +44,13 @@ func FindIPAddresses(input string) []string {
 	matches := re.FindAllString(input, -1)
 	return matches
 }
+
+func searchRegionFromIp(input string) string  {
+	listIp := FindIPAddresses(input)
+	if len(listIp)>0 {
+		region,err:= MapIPToLocation(listIp[0],"./geoip/GeoLite2-Country.mmdb")
+		println(err)
+		return region
+	}
+	return ""
+}
