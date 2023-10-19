@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
-	// "github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	// "github.com/go-kit/log/level"
 	"github.com/grafana/dskit/backoff"
@@ -208,7 +208,7 @@ func main() {
 	// os.Setenv("TENANT_ID", "torus-tenant")
 	// os.Setenv("WRITE_ADDRESS", "http://localhost:8080/loki/api/v1/push")
 
-	// setupArguments()
+	setupArguments()
 
 	// evStr := `{
 	// 	"body": "eyJ0ZXN0IjoiYm9keSJ9",
