@@ -31,6 +31,12 @@ func parser_json(text string) model.LabelSet {
 			new_path := strings.Replace(path, "value", "name",1)
 			path = "httpRequest.headers." + gjson.Get(text, new_path).Str
 		}
+		if len(value_label)>6048 {
+			continue
+		}
+		if len(path)>1024 {
+			continue
+		}
 		label := model.LabelSet{
 			model.LabelName(validPath(path)): model.LabelValue(value_label),
 		}
@@ -41,7 +47,7 @@ func parser_json(text string) model.LabelSet {
 
 func validPath(path string) string{
 	path=strings.ReplaceAll(path,"-","_")
-	path=strings.ReplaceAll(path,".",":")
+	path=strings.ReplaceAll(path,".","__")
 	return path
 }
 
