@@ -37,8 +37,15 @@ func parser_json(text string) model.LabelSet {
 		if len(path)>1024 {
 			continue
 		}
+		path=validPath(path)
+		if (strings.Contains(path,"ruleGroupList")||strings.EqualFold(path,"httpRequest__headers__Accept")||strings.Contains(path,"httpRequest__headers__accept_encoding")||strings.Contains(path,"httpRequest__headers__accept_language")||strings.Contains(path,"httpRequest__headers__cache_control")||strings.Contains(path,"httpRequest__headers__authorization")){
+			continue
+		}
+		if (strings.Contains(path,"httpRequest__headers__If_Modified_Since")||strings.Contains(path,"httpRequest__requestId")){
+			continue
+		}
 		label := model.LabelSet{
-			model.LabelName(validPath(path)): model.LabelValue(value_label),
+			model.LabelName((path)): model.LabelValue(value_label),
 		}
 		labels = labels.Merge(label)
 	}
