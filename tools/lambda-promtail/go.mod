@@ -13,8 +13,10 @@ require (
 	github.com/grafana/dskit v0.0.0-20230201083518-528d8a7d52f2
 	github.com/grafana/loki v1.6.2-0.20230216091802-4e4359e67c6c
 	github.com/prometheus/common v0.39.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.4
 )
+
+require github.com/oschwald/maxminddb-golang v1.11.0 // indirect
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
@@ -76,6 +78,7 @@ require (
 	github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e // indirect
 	github.com/opentracing-contrib/go-stdlib v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
+	github.com/oschwald/geoip2-golang v1.9.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
@@ -107,7 +110,7 @@ require (
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.9.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.4.0 // indirect
