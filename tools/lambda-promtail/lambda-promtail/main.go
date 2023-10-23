@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	// "github.com/go-kit/log/level"
 	"github.com/grafana/dskit/backoff"
 	"github.com/prometheus/common/model"
 )
@@ -179,7 +178,7 @@ func handler(ctx context.Context, ev map[string]interface{}) error {
 	event, err := checkEventType(ev)
 	if err != nil {
 		// level.Error(*pClient.log).Log("err", fmt.Errorf("invalid event: %s\n", ev))
-		return processEvent(ctx, ev, pClient )
+		return processEvent(ctx, ev, pClient)
 	}
 
 	switch evt := event.(type) {
@@ -205,7 +204,7 @@ func main() {
 	// os.Setenv("USERNAME", "")
 	// os.Setenv("OMIT_EXTRA_LABELS_PREFIX", "true")
 	// os.Setenv("SKIP_TLS_VERIFY", "true")
-	// os.Setenv("TENANT_ID", "torus-tenant")
+	// os.Setenv("TENANT_ID", "torus-tenant ")
 	// os.Setenv("WRITE_ADDRESS", "http://localhost:8080/loki/api/v1/push")
 
 	setupArguments()
@@ -249,62 +248,6 @@ func main() {
 	// 	  "X-Forwarded-For": "127.0.0.1, 127.0.0.2",
 	// 	  "X-Forwarded-Port": "443",
 	// 	  "X-Forwarded-Proto": "https"
-	// 	},
-	// 	"multiValueHeaders": {
-	// 	  "Accept": [
-	// 		"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-	// 	  ],
-	// 	  "Accept-Encoding": [
-	// 		"gzip, deflate, sdch"
-	// 	  ],
-	// 	  "Accept-Language": [
-	// 		"en-US,en;q=0.8"
-	// 	  ],
-	// 	  "Cache-Control": [
-	// 		"max-age=0"
-	// 	  ],
-	// 	  "CloudFront-Forwarded-Proto": [
-	// 		"https"
-	// 	  ],
-	// 	  "CloudFront-Is-Desktop-Viewer": [
-	// 		"true"
-	// 	  ],
-	// 	  "CloudFront-Is-Mobile-Viewer": [
-	// 		"false"
-	// 	  ],
-	// 	  "CloudFront-Is-SmartTV-Viewer": [
-	// 		"false"
-	// 	  ],
-	// 	  "CloudFront-Is-Tablet-Viewer": [
-	// 		"false"
-	// 	  ],
-	// 	  "CloudFront-Viewer-Country": [
-	// 		"US"
-	// 	  ],
-	// 	  "Host": [
-	// 		"0123456789.execute-api.us-east-1.amazonaws.com"
-	// 	  ],
-	// 	  "Upgrade-Insecure-Requests": [
-	// 		"1"
-	// 	  ],
-	// 	  "User-Agent": [
-	// 		"Custom User Agent String"
-	// 	  ],
-	// 	  "Via": [
-	// 		"1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)"
-	// 	  ],
-	// 	  "X-Amz-Cf-Id": [
-	// 		"cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA=="
-	// 	  ],
-	// 	  "X-Forwarded-For": [
-	// 		"127.0.0.1, 127.0.0.2"
-	// 	  ],
-	// 	  "X-Forwarded-Port": [
-	// 		"443"
-	// 	  ],
-	// 	  "X-Forwarded-Proto": [
-	// 		"https"
-	// 	  ]
 	// 	},
 	// 	"requestContext": {
 	// 	  "accountId": "123456789012",
