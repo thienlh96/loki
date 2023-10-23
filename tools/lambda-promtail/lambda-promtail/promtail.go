@@ -85,7 +85,7 @@ func (b *batch) add(ctx context.Context, e entry) error {
 	return nil
 }
 
-func labelsMapToString(ls model.LabelSet, without ...model.LabelName) string {
+func  labelsMapToString(ls model.LabelSet, without ...model.LabelName) string {
 	lstrs := make([]string, 0, len(ls))
 Outer:
 	for l, v := range ls {

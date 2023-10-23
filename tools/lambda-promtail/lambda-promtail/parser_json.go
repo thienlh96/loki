@@ -10,9 +10,18 @@ import (
 
 func parser_json(text string) model.LabelSet {
 	labels := model.LabelSet{}
+	region:= searchRegionFromIp(text)
+	if region!=""{
+		region_label:=model.LabelSet{
+			model.LabelName("region"):model.LabelValue(region),
+		}
+		labels = labels.Merge(region_label)
+	}
+
 	if !gjson.Valid(text) {
 		return labels
 	}
+	
 	paths := get_paths(text, "", labels)
 	for i := 0; i < len(paths); i++ {
 		path := paths[i]
