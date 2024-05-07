@@ -314,3 +314,66 @@ func Test_parseS3Log(t *testing.T) {
 		})
 	}
 }
+
+func Test_parseCWLog(t *testing.T) {
+	type args struct {
+		b         *batch
+		labels    map[string]string
+		obj       io.ReadCloser
+		txt  string
+		batchSize int
+	}
+	tests := []struct {
+		name           string
+		args           args
+		wantErr        bool
+		want    map[string]string
+	}{
+		{
+			name: "waf",
+			args: args{
+				batchSize: 1024000000, // Set large enough we don't try and send to promtail
+				txt:  `{	"requestId": "248ffb94-20d0-44b4-b448-af2b5a92b3a7",    "IP": "113.185.104.76",    "resourcePath": "/diseases/{proxy+}",    "requestTime": "24/Oct/2023:04:31:33 +0000",    "status": "200",	"error": "-",	"protocol": "HTTP/1.1",    "responseLength": "1036",    "clientId": "-",    "Username": "-",    "Email": "-",    "Phone": "-",	"OrgIDs": "-",    "PoolID": "-",    "IntegrationLatency": "14"}`,
+				b: &batch{
+					streams: map[string]*logproto.Stream{},
+				},
+				labels: map[string]string{
+					"requestId":       "248ffb94-20d0-44b4-b448-af2b5a92b3a7",
+					"IP":        "source",
+					"account_id": "123456789",
+					"key":        "waf-log-test.log",
+				},
+			},
+			want: map[string]string{
+				"requestId": "248ffb94-20d0-44b4-b448-af2b5a92b3a7",
+				"IP": "113.185.104.76",
+				"resourcePath": "/diseases/{proxy+}",
+				"requestTime": "24/Oct/2023:04:31:33 +0000",
+				"status": "200",
+				"error": "-",
+				"protocol": "HTTP/1.1",
+				"responseLength": "1036",
+				"clientId": "-",
+				"Username": "-",
+				"Email": "-",
+				"Phone": "-",
+				"OrgIDs": "-",
+				"PoolID": "-",
+				"IntegrationLatency": "14",
+				"region":"VN",
+			},
+			wantErr:        false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// var err error
+			batchSize = tt.args.batchSize
+			labels := parser_json(  tt.args.txt)
+			require.Len(t, labels, 16)
+			if !reflect.DeepEqual(labels, tt.want) {
+				t.Errorf("getLabels() = %v, want %v", labels, tt.want)
+			}
+		})
+	}
+}
